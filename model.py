@@ -45,15 +45,18 @@ def main(spark):
     # StringIndexer
     user_index = StringIndexer(inputCol="user_id", outputCol="indexed_user_id", handleInvalid = 'skip')
     track_index = StringIndexer(inputCol="track_id", outputCol="indexed_track_id", handleInvalid='skip')
+    
+    user_string_indexer = user_index.fit(df)
+    track_string_indexer = track_index.fit(df)
+   
+    df = indexer_user_model.transform(df)
+    df = indexer_track_model.transform(df)
 
-    train = user_index.fit_transform(train)
-    train = track_index.fit_transform(train)
+    validation = indexer_user_model.transform(validation)
+    validation = indexer_track_model.transform(validation)
 
-    validation = user_index.fit_transform(validation)
-    validation = track_index.fit_transform(validation)
-
-    test = user_index.fit_transform(test)
-    test = track_index.fit_transform(test)
+    test = indexer_user_model.transform(test)
+    test = indexer_track_model.transform(test)
 
 
     # ALS
