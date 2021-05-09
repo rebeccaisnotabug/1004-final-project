@@ -22,6 +22,7 @@ from pyspark.ml.recommendation import ALS, ALSModel
 from pyspark.mllib.evaluation import RankingMetrics
 import pyspark.sql.functions as F
 from pyspark.sql.functions import expr
+from pyspark.sql.functions  import collect_list
 
 
 def main(spark):
