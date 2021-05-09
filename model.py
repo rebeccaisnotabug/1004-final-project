@@ -71,13 +71,13 @@ def main(spark):
                 
     
     # without tuning
-    als = ALS(rank = 20,\
-              maxIter = 10,\ 
-              regParam = 0.01,\ 
-              userCol = 'indexed_user_id',\
-              itemCol = 'indexed_track_id',\ 
-              ratingCol = 'count',\
-              coldStartStrategy='drop',\ 
+    als = ALS(rank = 20,
+              maxIter = 10, 
+              regParam = 0.01,
+              userCol = 'indexed_user_id',
+              itemCol = 'indexed_track_id',
+              ratingCol = 'count',
+              coldStartStrategy='drop', 
               nonnegative=True)
     
     model = als.fit(train)
