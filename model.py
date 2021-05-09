@@ -49,14 +49,14 @@ def main(spark):
     user_string_indexer = user_index.fit(df)
     track_string_indexer = track_index.fit(df)
    
-    df = indexer_user_model.transform(df)
-    df = indexer_track_model.transform(df)
+    df = user_string_indexer.transform(df)
+    df = track_string_indexer.transform(df)
 
-    validation = indexer_user_model.transform(validation)
-    validation = indexer_track_model.transform(validation)
+    validation = user_string_indexer.transform(validation)
+    validation = track_string_indexer.transform(validation)
 
-    test = indexer_user_model.transform(test)
-    test = indexer_track_model.transform(test)
+    test = user_string_indexer.transform(test)
+    test = track_string_indexer.transform(test)
 
 
     # ALS
