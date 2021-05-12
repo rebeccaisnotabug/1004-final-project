@@ -23,7 +23,7 @@ from pyspark.mllib.evaluation import RankingMetrics
 import pyspark.sql.functions as F
 from pyspark.sql.functions import expr
 from pyspark.sql.functions  import collect_list
-
+import itertools
 
 def main(spark):
     train_path = 'hdfs:/user/bm106/pub/MSD/cf_train.parquet'
@@ -39,9 +39,14 @@ def main(spark):
     test = spark.read.parquet(test_path)
     test.createOrReplaceTempView('test')
     
-    # downsample
-    df = train.sample(False, 0.01, 42)
-    df.createOrReplaceTempView('df')
+    df = train.repartition(5000)
+    
+    
+    #Downsample
+    #downsample_path = 'hdfs:/user/ss14359/train25.parquet'
+    #df = spark.read.parquet(downsample_path)
+    #df = train.sample(False, 0.01, 42)
+    #df.createOrReplaceTempView('df')
     
     # StringIndexer
     user_index = StringIndexer(inputCol="user_id", outputCol="indexed_user_id", handleInvalid = 'skip')
@@ -58,22 +63,29 @@ def main(spark):
 
     test = user_string_indexer.transform(test)
     test = track_string_indexer.transform(test)
-
-
+    
     # ALS
-    rank = [5, 10, 20, 30, 50]
-    reg_params = [0.001, 0.01, 0.1]
-    alpha = [1, 5, 10, 20]
+    rank = [150]
+    reg_params = [1]
+    alpha = [50]
+    param_choice = itertools.product(rank, reg_params, alpha)
 
     # distinct users from validation
-    user_validation = validation.select('indexed_user_id').distinct()
-
-    # true item
-    true_item = validation.select('indexed_user_id', 'indexed_track_id')\
-                    .groupBy('indexed_user_id')\
-                    .agg(collect_list('indexed_track_id').alias('track_id_val'))
-                
+    #user_validation = validation.select('indexed_user_id').distinct()
     
+    # distinct users from test
+    user_test = test.select('indexed_user_id').distinct()
+
+    # true item for validation
+    #true_item = validation.select('indexed_user_id', 'indexed_track_id')\
+                    #.groupBy('indexed_user_id')\
+                    #.agg(collect_list('indexed_track_id').alias('track_id_val'))
+            
+    # true item for test
+    true_item = test.select('indexed_user_id', 'indexed_track_id')\
+                    .groupBy('indexed_user_id')\
+                    .agg(collect_list('indexed_track_id').alias('track_id_val'))                
+    """
     # without tuning
     als = ALS(rank = 20,
               maxIter = 10, 
@@ -84,50 +96,60 @@ def main(spark):
               coldStartStrategy='drop', 
               nonnegative=True)
     
-    model = als.fit(train)
+    model = als.fit(df)
     
     # Evaluate the model by computing the MAP on the validation data
     predictions = model.recommendForUserSubset(user_validation,500)
     predictions.createOrReplaceTempView('predictions')
     pred_item= predictions.select('indexed_user_id','recommendations.indexed_track_id')
+    #pred_item.show()
     
     # convert to rdd for evaluation
-    pred_item_rdd = pred_item.join(F.broadcast(true_label), 'indexed_user_id', 'inner') \
+    pred_item_rdd = pred_item.join(F.broadcast(true_item), 'indexed_user_id', 'inner') \
                         .rdd \
                         .map(lambda row: (row[1], row[2]))
-
     # evaluation
     metrics = RankingMetrics(pred_item_rdd)
     map_score = metrics.meanAveragePrecision
     print('map score is: ', map_score)
+    """
     
-    
- 
     # hyperparameter tuning
-    """
-    for r in rank:
-        for reg in reg_params:
-            for a in alpha:
-                als = ALS(rank = r, maxIter = 10, regParam = reg, userCol = 'indexed_user_id',\
-                                itemCol = 'indexed_track_id', ratingCol = 'count', coldStartStrategy='drop', nonnegative=True)
-                model = als.fit(train)
+    for i in param_choice:
+        als = ALS(rank = i[0], 
+                  maxIter = 20, 
+                  regParam = i[1], 
+                  alpha = i[2],
+                  userCol = 'indexed_user_id',
+                  itemCol = 'indexed_track_id',
+                  ratingCol = 'count', 
+                  implicitPrefs = True, 
+                  nonnegative = False,
+                  coldStartStrategy='drop')
+        
+        model = als.fit(df)
+        print('Finish training for {} combination'.format(i))
+        
+        # Evaluate the model by computing the MAP on the validation data
+        predictions = model.recommendForUserSubset(user_test, 500)
+        predictions.createOrReplaceTempView('predictions')
+        pred_item = predictions.select('indexed_user_id','recommendations.indexed_track_id')
+        #pred_item.show()
 
-                # Evaluate the model by computing the MAP on the validation data
-                predictions = model.recommendForUserSubset(user_validation,500)
-                predictions.createOrReplaceTempView('predictions')
-                pred_item= predictions.select('indexed_user_id','recommendations.indexed_track_id')
+        # convert to rdd for evaluation
+        pred_item_rdd = pred_item.join(F.broadcast(true_item), 'indexed_user_id', 'inner') \
+                            .rdd \
+                            .map(lambda row: (row[1], row[2]))
 
-                # convert to rdd for evaluation
-                pred_item_rdd = pred_item.join(F.broadcast(true_label), 'indexed_user_id', 'inner') \
-                        .rdd \
-                        .map(lambda row: (row[1], row[2]))
+        # evaluation
+        metrics = RankingMetrics(pred_item_rdd)
+        #ndcg = metrics.ndcgAt(500)
+        map_score = metrics.meanAveragePrecision
+        #precision = metrics.precisionAt(500)
+        print('map score is: ', map_score)
+        #print('precision is: ', precision)
+        #print('ndcg is: ',ndcg)
 
-                # evaluation
-                metrics = RankingMetrics(pred_item_rdd)
-                map_score = metrics.meanAveragePrecision
-                print('map score is: ', map_score)
-
-    """
 
     
 # Only enter this block if we're in main
