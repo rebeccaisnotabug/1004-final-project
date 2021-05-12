@@ -85,34 +85,7 @@ def main(spark):
     true_item = test.select('indexed_user_id', 'indexed_track_id')\
                     .groupBy('indexed_user_id')\
                     .agg(collect_list('indexed_track_id').alias('track_id_val'))                
-    """
-    # without tuning
-    als = ALS(rank = 20,
-              maxIter = 10, 
-              regParam = 0.01,
-              userCol = 'indexed_user_id',
-              itemCol = 'indexed_track_id',
-              ratingCol = 'count',
-              coldStartStrategy='drop', 
-              nonnegative=True)
     
-    model = als.fit(df)
-    
-    # Evaluate the model by computing the MAP on the validation data
-    predictions = model.recommendForUserSubset(user_validation,500)
-    predictions.createOrReplaceTempView('predictions')
-    pred_item= predictions.select('indexed_user_id','recommendations.indexed_track_id')
-    #pred_item.show()
-    
-    # convert to rdd for evaluation
-    pred_item_rdd = pred_item.join(F.broadcast(true_item), 'indexed_user_id', 'inner') \
-                        .rdd \
-                        .map(lambda row: (row[1], row[2]))
-    # evaluation
-    metrics = RankingMetrics(pred_item_rdd)
-    map_score = metrics.meanAveragePrecision
-    print('map score is: ', map_score)
-    """
     
     # hyperparameter tuning
     for i in param_choice:
