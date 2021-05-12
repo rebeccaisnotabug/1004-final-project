@@ -39,7 +39,8 @@ def main(spark):
     test = spark.read.parquet(test_path)
     test.createOrReplaceTempView('test')
     
-    df = train.repartition(5000)
+    df = train.repartition(100000)
+    test = test.repartition(5000)
     
     
     #Downsample
