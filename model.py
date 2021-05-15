@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''Starter Pyspark Script for students to complete for their Lab 3 Assignment.
-Usage:
-    $ spark-submit lab_3_starter_code.py <student_netID>
-'''
-#Use getpass to obtain user netID
 import getpass
 import pandas as pd
 import numpy as np
-
 
 # And pyspark.sql to get the spark session
 from pyspark.sql import SparkSession
@@ -39,14 +33,11 @@ def main(spark):
     test = spark.read.parquet(test_path)
     test.createOrReplaceTempView('test')
     
-    df = train.repartition(100000)
-    test = test.repartition(5000)
-    
-    
     #Downsample
-    #downsample_path = 'hdfs:/user/ss14359/train25.parquet'
-    #df = spark.read.parquet(downsample_path)
-    #df = train.sample(False, 0.01, 42)
+    downsample_path = 'hdfs:/user/ss14359/train25.parquet'
+    df = spark.read.parquet(downsample_path)
+    df.createOrReplaceTempView('df')
+    #df = train.repartition(2000)   
     #df.createOrReplaceTempView('df')
     
     # StringIndexer
@@ -66,28 +57,27 @@ def main(spark):
     test = track_string_indexer.transform(test)
     
     # ALS
-    rank = [150]
-    reg_params = [1]
-    alpha = [50]
+    rank = [100]
+    reg_params = [0.1, 1]
+    alpha = [10]
     param_choice = itertools.product(rank, reg_params, alpha)
 
     # distinct users from validation
-    #user_validation = validation.select('indexed_user_id').distinct()
+    user_validation = validation.select('indexed_user_id').distinct()
     
     # distinct users from test
-    user_test = test.select('indexed_user_id').distinct()
+    #user_test = test.select('indexed_user_id').distinct()
 
     # true item for validation
-    #true_item = validation.select('indexed_user_id', 'indexed_track_id')\
-                    #.groupBy('indexed_user_id')\
-                    #.agg(collect_list('indexed_track_id').alias('track_id_val'))
+    true_item = validation.select('indexed_user_id', 'indexed_track_id')\
+                    .groupBy('indexed_user_id')\
+                    .agg(collect_list('indexed_track_id').alias('track_id_val'))
             
     # true item for test
-    true_item = test.select('indexed_user_id', 'indexed_track_id')\
-                    .groupBy('indexed_user_id')\
-                    .agg(collect_list('indexed_track_id').alias('track_id_val'))                
-    
-    
+    #true_item = test.select('indexed_user_id', 'indexed_track_id')\
+                    #.groupBy('indexed_user_id')\
+                    #.agg(collect_list('indexed_track_id').alias('track_id_val'))                
+
     # hyperparameter tuning
     for i in param_choice:
         als = ALS(rank = i[0], 
@@ -105,10 +95,9 @@ def main(spark):
         print('Finish training for {} combination'.format(i))
         
         # Evaluate the model by computing the MAP on the validation data
-        predictions = model.recommendForUserSubset(user_test, 500)
+        predictions = model.recommendForUserSubset(user_validation, 500)
         predictions.createOrReplaceTempView('predictions')
         pred_item = predictions.select('indexed_user_id','recommendations.indexed_track_id')
-        #pred_item.show()
 
         # convert to rdd for evaluation
         pred_item_rdd = pred_item.join(F.broadcast(true_item), 'indexed_user_id', 'inner') \
@@ -134,5 +123,3 @@ if __name__ == "__main__":
     
     # Call our main routine
     main(spark)
-
-
