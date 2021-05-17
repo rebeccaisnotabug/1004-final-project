@@ -58,8 +58,8 @@ def main(spark):
     
     # ALS
     rank = [100]
-    reg_params = [1]
-    alpha = [10]
+    reg_params = [0.1,1]
+    alpha = [1]
     param_choice = itertools.product(rank, reg_params, alpha)
 
     # distinct users from validation
