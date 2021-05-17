@@ -58,7 +58,7 @@ def main(spark):
     
     # ALS
     rank = [100]
-    reg_params = [0.1, 1]
+    reg_params = [0.1,1]
     alpha = [10]
     param_choice = itertools.product(rank, reg_params, alpha)
 
@@ -106,12 +106,12 @@ def main(spark):
 
         # evaluation
         metrics = RankingMetrics(pred_item_rdd)
-        #ndcg = metrics.ndcgAt(500)
-        map_score = metrics.meanAveragePrecision
-        #precision = metrics.precisionAt(500)
-        print('map score is: ', map_score)
-        #print('precision is: ', precision)
-        #print('ndcg is: ',ndcg)
+        ndcg = metrics.ndcgAt(500)
+        #map_score = metrics.meanAveragePrecision
+        precision = metrics.precisionAt(500)
+        #print('map score is: ', map_score)
+        print('precision is: ', precision)
+        print('ndcg is: ',ndcg)
 
 
     
