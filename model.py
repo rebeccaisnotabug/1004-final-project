@@ -111,12 +111,12 @@ def main(spark):
 
         # evaluation
         metrics = RankingMetrics(pred_item_rdd)
-        #map_score = metrics.meanAveragePrecision
+        map_score = metrics.meanAveragePrecision
         precision = metrics.precisionAt(500)
-        #ndcg = metrics.ndcgAt(500)
-        #print('map score is: ', map_score)
+        ndcg = metrics.ndcgAt(500)
+        print('map score is: ', map_score)
         print('precision is: ', precision)
-        #print('ndcg is: ',ndcg)
+        print('ndcg is: ',ndcg)
         time_taken = time() - start
         print('Time taken: ' + str(time_taken))
 
