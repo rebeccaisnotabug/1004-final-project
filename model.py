@@ -39,7 +39,7 @@ def main(spark):
     #test.createOrReplaceTempView('test')
     
     #Downsample
-    downsample_path = 'hdfs:/user/ss14359/train1.parquet'
+    downsample_path = 'hdfs:/user/ss14359/train25.parquet'
     df = spark.read.parquet(downsample_path)
     df.createOrReplaceTempView('df')
      
@@ -62,8 +62,8 @@ def main(spark):
     
     
     # ALS
-    rank = [1, 5, 10]
-    reg_params = [0.1, 1]
+    rank = [100]
+    reg_params = [0.1]
     alpha = [10]
     param_choice = itertools.product(rank, reg_params, alpha)
 
@@ -81,7 +81,7 @@ def main(spark):
     
     # hyperparameter tuning
     for i in param_choice:
-        start = time()
+        #start = time()
         als = ALS(rank = i[0], 
                   maxIter = 20, 
                   regParam = i[1], 
@@ -112,12 +112,12 @@ def main(spark):
         metrics = RankingMetrics(pred_item_rdd)
         #map_score = metrics.meanAveragePrecision
         precision = metrics.precisionAt(500)
-        #ndcg = metrics.ndcgAt(500)
+        ndcg = metrics.ndcgAt(500)
         #print('map score is: ', map_score)
         print('precision is: ', precision)
-        #print('ndcg is: ',ndcg)
-        time_taken = time() - start
-        print('Time taken: ' + str(time_taken))
+        print('ndcg is: ',ndcg)
+        #time_taken = time() - start
+        #print('Time taken: ' + str(time_taken))
 
 
     
