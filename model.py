@@ -39,7 +39,7 @@ def main(spark):
     #test.createOrReplaceTempView('test')
     
     #Downsample
-    downsample_path = 'hdfs:/user/ss14359/train10.parquet'
+    downsample_path = 'hdfs:/user/ss14359/train1.parquet'
     df = spark.read.parquet(downsample_path)
     df.createOrReplaceTempView('df')
      
@@ -63,7 +63,7 @@ def main(spark):
     
     # ALS
     rank = [1, 5, 10]
-    reg_params = [0.1]
+    reg_params = [0.1, 1]
     alpha = [10]
     param_choice = itertools.product(rank, reg_params, alpha)
 
