@@ -63,7 +63,7 @@ def main(spark):
     
     # ALS
     rank = [40]
-    reg_params = [0.1]
+    reg_params = [1]
     alpha = [10]
     param_choice = itertools.product(rank, reg_params, alpha)
 
